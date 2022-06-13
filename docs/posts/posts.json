@@ -1,0 +1,36 @@
+[
+  {
+    "path": "posts/2022-06-13-2nd-test/",
+    "title": "2nd test",
+    "description": "This is a 2nd test",
+    "author": [
+      {
+        "name": "Sarunas Kalade",
+        "url": "https://example.com/skalade"
+      }
+    ],
+    "date": "2022-06-13",
+    "categories": [],
+    "contents": "\nDistill is a publication format for scientific and technical writing,\nnative to the web.\nLearn more about using Distill at https://rstudio.github.io/distill.\n\n\n\n",
+    "preview": {},
+    "last_modified": "2022-06-13T03:10:14+01:00",
+    "input_file": {}
+  },
+  {
+    "path": "posts/welcome/",
+    "title": "Test",
+    "description": "This is a test blog post.",
+    "author": [
+      {
+        "name": "Sarunas Kalade",
+        "url": "https://example.com/skalade"
+      }
+    ],
+    "date": "2022-06-13",
+    "categories": [],
+    "contents": "\n\n\n\n",
+    "preview": {},
+    "last_modified": "2022-06-13T03:10:14+01:00",
+    "input_file": {}
+  }
+]

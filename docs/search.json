@@ -1,0 +1,12 @@
+{
+  "articles": [
+    {
+      "path": "index.html",
+      "title": "Where good ideas come to die",
+      "author": [],
+      "contents": "\n\n\n\n",
+      "last_modified": "2022-06-13T03:17:27+01:00"
+    }
+  ],
+  "collections": ["posts/posts.json"]
+}

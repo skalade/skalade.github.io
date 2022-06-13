@@ -2,7 +2,7 @@ name: "blog"
 title: "My blog"
 description: |
   This is my blog. There are many like it, but this one is mine.
-output_dir: "_site"
+output_dir: "docs"
 navbar:
   right:
     - text: "Home"
