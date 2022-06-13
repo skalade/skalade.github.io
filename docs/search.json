@@ -1,6 +1,14 @@
 {
   "articles": [
     {
+      "path": "about.html",
+      "title": "About this blog",
+      "description": "Engineer man write blog. Learn.",
+      "author": [],
+      "contents": "\n\n\n\n",
+      "last_modified": "2022-06-13T03:21:02+01:00"
+    },
+    {
       "path": "index.html",
       "title": "Where good ideas come to die",
       "author": [],
