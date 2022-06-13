@@ -1,0 +1,23 @@
+---
+title: "2nd test"
+description: |
+  This is a 2nd test
+author:
+  - name: Sarunas Kalade
+    url: https://example.com/skalade
+date: 2022-06-13
+output:
+  distill::distill_article:
+    self_contained: false
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+Distill is a publication format for scientific and technical writing, native to the web.
+
+Learn more about using Distill at <https://rstudio.github.io/distill>.
+
+

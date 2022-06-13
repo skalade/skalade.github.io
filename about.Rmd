@@ -1,0 +1,9 @@
+---
+title: "About this blog"
+description: |
+  Engineer man write blog. Learn.
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```

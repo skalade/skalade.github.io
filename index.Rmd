@@ -1,0 +1,5 @@
+---
+title: "Where good ideas come to die"
+site: distill::distill_website
+listing: posts
+---
