@@ -3,7 +3,7 @@ description:        An ML tinkerer's blog
 author:             Sarunas Kalade
 baseurl:            ""
 url:                "https://skalade.github.io"
-theme:              jekyll-theme-clean-blog
+theme:              minima
 
 # Social Profiles
 # twitter_username:  
