@@ -9,11 +9,11 @@ background: '/assets/img/necropolis.jpg'
   <!-- Left-side content: Text description -->
     <div style="flex: 2;">
     <h1>Hi there</h1>
-    <p>My name is Sarunas, but I also go by Shawn. I’m a researcher specializing in Robotics and AI at AMD.</p>
+    <p>My name is Sarunas, also go by Shawn. Work as a researcher at AMD.</p>
     
     <p>I did my bachelor's and PhD in Electrical Engineering from the University of Strathclyde in Glasgow, Scotland, where I focused on applying machine learning to wireless communications.</p>
 
-    <p>These days I'm particularly excited about robotics - in particular working on Vision Language Action (VLA) models and accelerating them in hardware like GPUs and NPUs. I also think LLMs for code generation are super cool - giving them tools like compilers and knowledge bases, then letting them optimize code autonomously is a really exciting research space.</p>
+    <p>These days I'm particularly interested in the prospects of Vision Language Action (VLA) models and accelerating them for real-time inference in GPUs, NPUs, FPGAs. Another big topic I focus on is LLMs for code generation - giving them tools like compilers, then letting them optimize code autonomously is a really exciting research space.</p>
     
     <p>In my free time, I enjoy climbing trips with friends, hiking, fitness activities, and watching kdramas.</p>
 </div>
