@@ -11,7 +11,7 @@ background: '/assets/img/necropolis.jpg'
     <h1>Hi there</h1>
     <p>My name is Sarunas, also go by Shawn. Work as a researcher at AMD.</p>
     
-    <p>I'm interested in Vision Language Action (VLA) models and accelerating them for real-time inference in GPUs, NPUs, FPGAs. Also LLMs for esoteric exotic niche DSL code generation i.e. NPUs.</p>
+    <p>I'm interested in Vision Language Action (VLA) models and accelerating them for real-time inference on hardware. Also LLMs for esoteric exotic niche DSL code generation i.e. NPUs.</p>
     
     <p>In my free time, I enjoy climbing trips with friends, hiking, fitness activities, and watching kdramas.</p>
 </div>
