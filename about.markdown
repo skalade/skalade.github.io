@@ -11,9 +11,7 @@ background: '/assets/img/necropolis.jpg'
     <h1>Hi there</h1>
     <p>My name is Sarunas, also go by Shawn. Work as a researcher at AMD.</p>
     
-    <p>I did my bachelor's and PhD in Electrical Engineering from the University of Strathclyde in Glasgow, Scotland, where I focused on applying machine learning to wireless communications.</p>
-
-    <p>These days I'm particularly interested in the prospects of Vision Language Action (VLA) models and accelerating them for real-time inference in GPUs, NPUs, FPGAs. Another big topic I focus on is LLMs for code generation - giving them tools like compilers, then letting them optimize code autonomously is a really exciting research space.</p>
+    <p>I'm interested in Vision Language Action (VLA) models and accelerating them for real-time inference in GPUs, NPUs, FPGAs. Also LLMs for esoteric exotic niche DSL code generation i.e. NPUs.</p>
     
     <p>In my free time, I enjoy climbing trips with friends, hiking, fitness activities, and watching kdramas.</p>
 </div>
