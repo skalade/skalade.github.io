@@ -14,13 +14,54 @@ I don't have a robotics background so all of this is quite new to me, and I've a
 
 ## How do tokens map to motor actions
 
-For beginners (like myself) Hugging Face's [LeRobot project](https://github.com/huggingface/lerobot) was a great starting point for learning the essentials of robotics ML. You can order a kit (like 6 motors per arm with some screws) and 3D print yourself some parts to screw onto the motors, and alltogether you have a pair of arms for ~$300-$600 (depending on which kit you go for). I went for the the [koch v1.1](https://github.com/jess-moss/koch-v1-1) which is based around dynamixel motors.
+For beginners (like myself) Hugging Face's [LeRobot project](https://github.com/huggingface/lerobot) was a great starting point for learning the essentials of robotics ML. You can order a kit and 3D print yourself some parts to screw onto the motors, and alltogether you have a pair of arms for ~$300-$600 (depending on which kit you go for). I went for the the [koch v1.1](https://github.com/jess-moss/koch-v1-1) which is based around dynamixel motors.
+
+### Generating movement
+
+Think of a single motor as a thing that can turn. The kit comes with 6 motors per arm, you daisy chain them together on a single serial bus then you can use the same interface to speak to each motor with its assigned ID.
 
 ![](/assets/img/posts/robot_tokenizers/single_motor.png)
 
+Note that under the hood you don't actually write degrees to these things, but each motor will typically have a fixed resolution. The Dynamixel XL330's have 12bit encoders which means there's 4096 possible position values you can write to them.
+
+Below is a Python snippet to get an appreciation for how it works for a single motor. I use this to move my gripper up 45 degrees.
+
+```python
+from dynamixel_sdk import PortHandler, PacketHandler
+
+protocol = 2.0 # seems to be default
+device = '/dev/ttyACM1' # usb device connected to dynamixel motors
+motor_id = 6 # I set this as the gripper ID
+baudrate = 1_000_000 # Default in lerobot
+
+# Addresses from 
+# https://emanual.robotis.com/docs/en/dxl/x/xl330-m077/#control-table
+ADDR_GOAL_POSITION = 116
+ADDR_PRESENT_POSITION = 132
+
+# Boilerplate communication setup
+portHandler = PortHandler(device)
+packetHandler = PacketHandler(protocol)
+portHandler.openPort()
+portHandler.setBaudRate(baudrate)
+
+# Read current position of motor
+current_position, _, _ = packetHandler.read4ByteTxRx(portHandler, motor_id, ADDR_PRESENT_POSITION)
+
+# Calculate goal position by adding how much we want to rotate
+goal_position = current_position + int((45/360) * 4095) # move 45 degrees
+
+# The bit that makes the motor move
+packetHandler.write4ByteTxRx(portHandler, motor_id, ADDR_GOAL_POSITION, goal_position)
+```
+
+![](/assets/img/posts/robot_tokenizers/real_movement.png)
+
+### Moving together
+
 Hugging Face LeRobot examples and code snippets controlling dynamixel motor. Policy output is in range of [-180,180], for example action chunking transformer, then it gets converted to motor resolution, e.g. if 4096 is max. That drives motors 
 
-<div style="text-align:center"><img width="80%" height="80%" src="/assets/img/posts/robot_tokenizers/arm_overview.png"/></div>
+![](/assets/img/posts/robot_tokenizers/arm_overview.png)
 
 Here's an example of running the lerobot APIs to do teleop:
 
@@ -34,6 +75,7 @@ Where your actions are simply dicts containing the robot joint positions (or mot
 
 ```python
 print(teleop_device.get_action())
+# Output:
 {'shoulder_pan.pos': 4.322344322344335,
  'shoulder_lift.pos': -99.59514170040485,
  'elbow_flex.pos': -90.30362389813908,
@@ -44,7 +86,7 @@ print(teleop_device.get_action())
 
 I was a bit shocked how simple moving the robot really was. You just write numbers and the arm moves. The challenge is the smarts -- how do you make those movements autonomous, smooth, precise and safe. Each concern being a huge topic of research!
 
-Solving robot intelligence or "physical AI" has always been a challenging area because it's a huge decision space and there's not enough training data. Note that I'm writing floating point numbers above, not discrete tokens, and for each degree of freedom you add a motor -- it's a huge search space for next actions. Availability of training data also hampers progress because robots come in various embodiments: single arm, bimanual, humanoid, dog, etc. Sensors are part of the embodiment and just switching from one camera to two changes your embodiment and you need to either finetune or re-train your policy.
+Solving robot intelligence or "physical AI" has always been a challenging area. Note that I'm writing floating point numbers above, not discrete tokens, and for each degree of freedom you add a motor -- it's a huge search space for next actions. Availability of training data also hampers progress because robots come in various embodiments: single arm, bimanual, humanoid, dog, etc. Sensors are part of the embodiment and just switching from one camera to two changes your embodiment and you need to either finetune or re-train your policy.
 
 **However**, recently there's been a lot of really cool developments in VLA land, like pre-trained base robotics models, using diffusion to plan trajectories and new tokenization techniques.
 
