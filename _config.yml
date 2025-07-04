@@ -15,7 +15,12 @@ linkedin_username:  skalade
 google_analytics:   UA-XXXXXXXXX-X # out your google-analytics code
 
 # Build settings
-markdown:           kramdown
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
 paginate:           5
 paginate_path:      "/posts/page:num/"
 plugins:
