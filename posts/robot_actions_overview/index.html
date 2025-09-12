@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>What puts the A in VLA? | Baltic Vectors</title>
+<meta name="keywords" content="robotics, vla">
+<meta name="description" content="The field of robotics is experiencing an algorithmic shift towards VLAs (Vision Language Action) models - teaching transformers to &ldquo;speak&rdquo; robot actions in the physical world.
+In this post, I&rsquo;ll:
+
+Demystify robot actions - what do VLAs output to make robots move.
+Review how action representations have evolved over the past couple of years.
+
+I don&rsquo;t have a robotics background so all of this is quite new to me, and I&rsquo;ve always been miffed by the bridging of what must happen between a model outputting tokens to an actual arm flipping a pancake. What do robot actions actually look like?">
+<meta name="author" content="Sarunas Kalade">
+<link rel="canonical" href="http://localhost:1313/posts/robot_actions_overview/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.8fe10233a706bc87f2e08b3cf97b8bd4c0a80f10675a143675d59212121037c0.css" integrity="sha256-j&#43;ECM6cGvIfy4Is8&#43;XuL1MCoDxBnWhQ2ddWSEhIQN8A=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/robot_actions_overview/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+<script defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+<script defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{
+    delimiters:[
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    ignoredTags:['script','noscript','style','textarea','pre','code']
+  });"></script>
+
+
+
+
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Baltic Vectors (Alt + H)">Baltic Vectors</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      What puts the A in VLA?
+    </h1>
+    <div class="post-meta"><span title='2025-09-10 00:50:23 -0600 MDT'>September 10, 2025</span>&nbsp;·&nbsp;25 min&nbsp;·&nbsp;Sarunas Kalade
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#lerobot---the-gateway-drug">LeRobot - the gateway drug</a></li>
+    <li><a href="#how-do-things-move-motors">How do things move? Motors!</a>
+      <ul>
+        <li><a href="#controlling-a-single-motor">Controlling a single motor</a></li>
+        <li><a href="#moving-an-arm-multiple-motors">Moving an arm (multiple motors)</a></li>
+        <li><a href="#joint-space-vs-end-effector-control">Joint space vs end-effector control</a></li>
+      </ul>
+    </li>
+    <li><a href="#robot-policies">Robot policies</a>
+      <ul>
+        <li><a href="#imitation-learning-vs-generalists">Imitation learning vs generalists</a></li>
+        <li><a href="#vlm---first-foray-into-the-physical-world">VLM - first foray into the physical world</a></li>
+        <li><a href="#vla---promising-generalists">VLA - promising generalists</a></li>
+      </ul>
+    </li>
+    <li><a href="#evolution-of-action-learning">Evolution of action learning</a>
+      <ul>
+        <li><a href="#rt-1-robotics-transformer">RT-1: robotics transformer</a></li>
+        <li><a href="#palm-e-planning">PaLM-E: planning</a></li>
+        <li><a href="#rt-2-the-first-vla">RT-2: the first VLA</a></li>
+        <li><a href="#diffusion-based-vlas-continuous-output-action-space">Diffusion-based VLAs: continuous output action space</a></li>
+        <li><a href="#pi0-fast-first-domain-specific-tokenizer">Pi0-FAST: first domain-specific tokenizer</a></li>
+      </ul>
+    </li>
+    <li><a href="#whats-next">What&rsquo;s next?</a></li>
+    <li><a href="#closing">Closing</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>The field of robotics is experiencing an algorithmic shift towards VLAs (Vision Language Action) models - teaching transformers to &ldquo;speak&rdquo; robot actions in the physical world.</p>
+<p>In this post, I&rsquo;ll:</p>
+<ul>
+<li>Demystify robot actions - what do VLAs output to make robots move.</li>
+<li>Review how action representations have evolved over the past couple of years.</li>
+</ul>
+<p>I don&rsquo;t have a robotics background so all of this is quite new to me, and I&rsquo;ve always been miffed by the bridging of what must happen between a model outputting tokens to an actual arm flipping a pancake. What do robot actions actually look like?</p>
+<h2 id="lerobot---the-gateway-drug">LeRobot - the gateway drug<a hidden class="anchor" aria-hidden="true" href="#lerobot---the-gateway-drug">#</a></h2>
+<p>Recently the barrier of entry to this area has dropped drastically. You don&rsquo;t need to spend thousands of dollars for industrial hardware just to get started. There&rsquo;s open-source 3D printable arms, pre-assembled motor kits, open cross-embodiment datasets and quite a few pre-trained foundation models you can pick up and finetune for your purposes.</p>
+<p>The <a href="https://github.com/huggingface/lerobot">LeRobot project</a> from Hugging Face is a great resource for getting started with fundamentals of robotics ML. There&rsquo;s even cheap 3D designs and motor kits you can get that work out of the box with their software stack. So, to build intuition around driving robot actions we&rsquo;ll look at the LeRobot hardware &amp; software stack in the first part of this writeup.</p>
+<p>For my home setup I got the <a href="https://github.com/jess-moss/koch-v1-1">Koch v1.1</a> which is based on dynamixel motors. After building the arms one of the first examples they have you do is <strong>teleoperation</strong> - controlling a follower arm manually using a leader arm. Teleop is a common approach for gathering training data for your ML models. Here&rsquo;s the arms in action:</p>
+<video width="640" height="480" controls>
+ <source src="arm_toss.mp4" type="video/mp4">
+</video>
+<p>Looking at the <a href="https://github.com/huggingface/lerobot/blob/ce3b9f627e55223d6d1c449d348c6b351b35d082/docs/source/il_robots.mdx?plain=1#L79-L81">code</a> it&rsquo;s surprisingly simple:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">action</span> <span class="o">=</span> <span class="n">teleop_device</span><span class="o">.</span><span class="n">get_action</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">robot</span><span class="o">.</span><span class="n">send_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</span></span></code></pre></div><p>the whole teleop example was just a Python <strong>for</strong> loop! Where are the days of programming MSP430 registers with raw C while looking up pages of datasheets on how to do PWM&hellip;</p>
+<p>So what happens when you run <code>robot.send_action()</code>? Let&rsquo;s take a peek under the hood.</p>
+<h2 id="how-do-things-move-motors">How do things move? Motors!<a hidden class="anchor" aria-hidden="true" href="#how-do-things-move-motors">#</a></h2>
+<p>A servo motor can turn a number of degrees based on the number we write to its controller board - not very fun on its own. Now screw on a piece of plastic to it and congratulations - you now have a very primitive robotic appendage.</p>
+<h3 id="controlling-a-single-motor">Controlling a single motor<a hidden class="anchor" aria-hidden="true" href="#controlling-a-single-motor">#</a></h3>
+<p>Let&rsquo;s say you just want to control a single motor of an arm, e.g. one of the Dynamixel motors that came with the <a href="https://www.robotis.us/koch-v1-1-low-cost-robot-arm-follower/">Koch v1.1 follower arm kit</a>. We&rsquo;ll use the Python API which the vendor provides.</p>
+<p>Some of our code will depend on the specific motor model, e.g. below I&rsquo;m showing you an example of moving an XL330 which is controlling the gripper of my follower arm.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dynamixel_sdk</span> <span class="kn">import</span> <span class="n">PortHandler</span><span class="p">,</span> <span class="n">PacketHandler</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">protocol</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="c1"># seems to be default</span>
+</span></span><span class="line"><span class="cl"><span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;/dev/ttyACM1&#39;</span> <span class="c1"># usb device connected to dynamixel motors</span>
+</span></span><span class="line"><span class="cl"><span class="n">motor_id</span> <span class="o">=</span> <span class="mi">6</span> <span class="c1"># I set this as the gripper ID</span>
+</span></span><span class="line"><span class="cl"><span class="n">baudrate</span> <span class="o">=</span> <span class="mi">1_000_000</span> <span class="c1"># Default in lerobot</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Addresses from </span>
+</span></span><span class="line"><span class="cl"><span class="c1"># https://emanual.robotis.com/docs/en/dxl/x/xl330-m077/#control-table</span>
+</span></span><span class="line"><span class="cl"><span class="n">ADDR_TORQUE_ENABLE</span><span class="o">=</span><span class="mi">64</span>
+</span></span><span class="line"><span class="cl"><span class="n">ADDR_GOAL_POSITION</span> <span class="o">=</span> <span class="mi">116</span>
+</span></span><span class="line"><span class="cl"><span class="n">ADDR_PRESENT_POSITION</span> <span class="o">=</span> <span class="mi">132</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Boilerplate communication setup</span>
+</span></span><span class="line"><span class="cl"><span class="n">portHandler</span> <span class="o">=</span> <span class="n">PortHandler</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">packetHandler</span> <span class="o">=</span> <span class="n">PacketHandler</span><span class="p">(</span><span class="n">protocol</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">portHandler</span><span class="o">.</span><span class="n">openPort</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">portHandler</span><span class="o">.</span><span class="n">setBaudRate</span><span class="p">(</span><span class="n">baudrate</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Enable torque</span>
+</span></span><span class="line"><span class="cl"><span class="n">packetHandler</span><span class="o">.</span><span class="n">write1ByteTxRx</span><span class="p">(</span><span class="n">portHandler</span><span class="p">,</span> <span class="n">MOTOR_ID</span><span class="p">,</span> <span class="n">ADDR_TORQUE_ENABLE</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Read current position of motor</span>
+</span></span><span class="line"><span class="cl"><span class="n">current_position</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">packetHandler</span><span class="o">.</span><span class="n">read4ByteTxRx</span><span class="p">(</span><span class="n">portHandler</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">,</span> <span class="n">ADDR_PRESENT_POSITION</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Calculate goal position by adding how much we want to rotate</span>
+</span></span><span class="line"><span class="cl"><span class="n">goal_position</span> <span class="o">=</span> <span class="n">current_position</span> <span class="o">+</span> <span class="nb">int</span><span class="p">((</span><span class="mi">45</span><span class="o">/</span><span class="mi">360</span><span class="p">)</span> <span class="o">*</span> <span class="mi">4095</span><span class="p">)</span> <span class="c1"># move 45 degrees</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># The bit that makes the motor move</span>
+</span></span><span class="line"><span class="cl"><span class="n">packetHandler</span><span class="o">.</span><span class="n">write4ByteTxRx</span><span class="p">(</span><span class="n">portHandler</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">,</span> <span class="n">ADDR_GOAL_POSITION</span><span class="p">,</span> <span class="n">goal_position</span><span class="p">)</span>
+</span></span></code></pre></div><p>Note that we need to do a little math to get the magic number to send to the controller board - each motor will typically have a fixed resolution. The Dynamixel XL330&rsquo;s have <a href="https://emanual.robotis.com/docs/en/dxl/x/xl330-m077/">12bit encoders</a> which means there&rsquo;s 4096 possible position values you can write to them, hence we normalize by full rotation (360) and scale by our max resolution (4096, actually 4095 because Python uses 0-based indexing).</p>
+<p>If you run this code (assuming your USB port and motor ID is setup like mine), you&rsquo;ll see the gripper motor twist quickly by ~45 degrees.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/real_movement.png#center"></p>
+<p style="text-align: center"><em>Moving the gripper of a Koch v1.1 robot arm by 45 degrees programmatically.</em></p>
+<p>Do note I say <strong>quickly</strong> - these things can be fast, but in an ideal world we want our robot motions to be smooth so it doesn&rsquo;t hurt anyone or itself. Of course there&rsquo;s a time and place, but you do want to avoid the jittery-ness that come from big jumps between predicted motor positions.</p>
+<h3 id="moving-an-arm-multiple-motors">Moving an arm (multiple motors)<a hidden class="anchor" aria-hidden="true" href="#moving-an-arm-multiple-motors">#</a></h3>
+<p>Let&rsquo;s scale this up a bit: each motor with an appendage adds a degree of freedom (DoF) to your robot. DoF just means how many joints the robot has, each joint being actioned by a motor. Since we&rsquo;re dealing with multiple motors on a bus, now we need to make multiple API calls to different motor IDs. Luckily libraries like LeRobot already exist where all the low-level API calls are abstracted for us.</p>
+<p>Recall the teleop for loop from earlier:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">action</span> <span class="o">=</span> <span class="n">teleop_device</span><span class="o">.</span><span class="n">get_action</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">robot</span><span class="o">.</span><span class="n">send_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</span></span></code></pre></div><p>If you print out the action it&rsquo;s just a dict where the keys are the joint names corresponding to the motors in the arm:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">action</span> <span class="o">=</span> <span class="n">teleop_device</span><span class="o">.</span><span class="n">get_action</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Output:</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="s1">&#39;shoulder_pan.pos&#39;</span><span class="p">:</span> <span class="mf">4.322344322344335</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"> <span class="s1">&#39;shoulder_lift.pos&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">99.59514170040485</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"> <span class="s1">&#39;elbow_flex.pos&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">90.30362389813908</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"> <span class="s1">&#39;wrist_flex.pos&#39;</span><span class="p">:</span> <span class="mf">4.133685136323663</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"> <span class="s1">&#39;wrist_roll.pos&#39;</span><span class="p">:</span> <span class="mf">4.224664224664238</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"> <span class="s1">&#39;gripper.pos&#39;</span><span class="p">:</span> <span class="mf">49.2676431424767</span><span class="p">}</span>
+</span></span></code></pre></div><p>In LeRobot the joint positions (motor states) are normalized to [-100,100], these correspond to maximum possible rotations in each joint after calibration - so if it can physically only turn 45 degrees that position will correspond to 100 in our action dict, which at runtime will get converted to the proper resolution the motor firmware accepts.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Raise wrist and fully open gripper</span>
+</span></span><span class="line"><span class="cl"><span class="n">action</span><span class="p">[</span><span class="s1">&#39;wrist_flex.pos&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">50.0</span>
+</span></span><span class="line"><span class="cl"><span class="n">action</span><span class="p">[</span><span class="s1">&#39;gripper.pos&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">100.0</span>
+</span></span><span class="line"><span class="cl"><span class="n">robot</span><span class="o">.</span><span class="n">send_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</span></span></code></pre></div><p>So to control the robot all you need to do is edit this dict and send it to the robo arm using <code>robot.send_action()</code>. <strong>You just write numbers and the arm moves!</strong> Just keep in mind that these normalized joint positions need to be converted to integer values before being sent off to the controller.</p>
+<h3 id="joint-space-vs-end-effector-control">Joint space vs end-effector control<a hidden class="anchor" aria-hidden="true" href="#joint-space-vs-end-effector-control">#</a></h3>
+<p>Before diving into the policies and VLAs I want to cover two major control modes - this really confused me when started reading robotics papers because both are commonly used. Directly setting the motor positions like we do with LeRobot is called <strong>joint-space control</strong>.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/joint_control.png#center"></p>
+<p style="text-align: center"><em>Joint control involves writing the motor positions for each joint of the robot directly.</em></p>
+<p>But it&rsquo;s also common to encounter actions represented with cartesian coordinates (x/y/z) and rotation parameters (roll/pitch/yaw) - in VLA literature I&rsquo;ve mostly seen this called <strong>end-effector (EF) control</strong> (sometimes it&rsquo;s also called <strong>task-space control</strong> e.g. <a href="https://www.mathworks.com/help/robotics/ug/task-space-motion-model.html">MathWorks documentation</a>).</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/ef_control.png#center"></p>
+<p style="text-align: center"><em>EF control tracks only the gripper position and rotation. An additional inverse kinematics (IK) stage is required to calculate the joint angles.</em></p>
+<p>In EF control mode the model has to learn the position of the gripper (the end-effector) in a 3D coordinate space as well as the angles that determine the rotation of it. For a 7 DoF arm (7 joints including the gripper), both control modes will require the same number of action representations.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Control mode</th>
+          <th>Action representation</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Joint control</td>
+          <td>$\theta_{1}$, $\theta_{2}$, $\theta_{3}$, $\theta_{4}$, $\theta_{5}$, $\theta_{6}$, $\theta_{7}$</td>
+      </tr>
+      <tr>
+          <td>EF control</td>
+          <td>$\Delta x$, $\Delta y$, $\Delta z$, $\theta_{roll}$, $\theta_{pitch}$, $\theta_{yaw}$, $\theta_{gripper}$</td>
+      </tr>
+  </tbody>
+</table>
+<p>EF control has a nice advantage of being more embodiment agnostic - since it only logs the position and rotation of the effector it doesn&rsquo;t really matter if the arm is 5 DoF or 8 DoF - the action space will remain 7. A separate module based on Inverse Kinematics (IK) is responsible for converting end-effector position and rotation into individual joint angles.</p>
+<p>I liked this nice writeup on <a href="https://wandb.ai/kscalelabs/control-modes/reports/Joint-Control-vs-End-Effector-Control--Vmlldzo4Mjk0NjU2">wandb.ai</a> comparing the two control modes. EF seems like the &ldquo;easier&rdquo; option to learn by a model, because direct joint control requires it to implicitly learn IK. However it does seem like giving the policy direct control over the robot joints makes sense as it&rsquo;s more of an end-to-end process without relying on intermediary human-crafted IK solvers.</p>
+<p>If you look at the past efforts on robotics data aggregation, within efforts like Open-X Embodiment <a href="https://robotics-transformer-x.github.io/">(O&rsquo;Neill et al., 2023)</a> most of the dataset were EF control. More recent collective - the DROID dataset (<a href="https://arxiv.org/abs/2403.12945">Khazatsky et al., 2024</a>) collected <strong>both</strong> joint space and EF space trajectories. This year HuggingFace released SmolVLA <a href="https://arxiv.org/abs/2506.01844">(Shukor et al., 2025)</a> trained with community sourced datasets composed primarily from joint space control data (as far as I can tell). It does seem likely that we are trending towards joint control as the dominant mode for end-to-end trained robotics policies. But maybe there&rsquo;s some advantages to EF that I&rsquo;m not grokking yet and we want it to stick around - guess we&rsquo;ll see!</p>
+<p>We&rsquo;ve built up some intuition on what actions actually look like and how to control robots programmatically. Now how do we get robots to do this autonomously? This is where policies come in.</p>
+<h2 id="robot-policies">Robot policies<a hidden class="anchor" aria-hidden="true" href="#robot-policies">#</a></h2>
+<p>These days policies are almost analogous to machine learning (ML) models. Think of them as black boxes that take <strong>state</strong> (proprioception, observation) as an input and map it to <strong>actions</strong> which we&rsquo;re very familiar with at this point. Words like proprioception might sound daunting at first but typically it&rsquo;s just the readout of the joint positions on your robot.</p>
+<p>Figuring out the numbers that determine the joint angles is what we train our policy to do. Here&rsquo;s a simplified flow for a 4 DoF arm being controlled by a robotics policy:</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/arm_overview.png#center"></p>
+<p style="text-align: center"><em>High level overview of a robot arm policy. It takes proprioception (joint angles) as input and outputs new joint angles based on observation data.</em></p>
+<p>Instead of us manually typing in numbers to move the joints of the arm, they get generated autonomously by the this policy.</p>
+<h3 id="imitation-learning-vs-generalists">Imitation learning vs generalists<a hidden class="anchor" aria-hidden="true" href="#imitation-learning-vs-generalists">#</a></h3>
+<p>Note that in my illustration above there&rsquo;s no such thing as a directive. This policy only sees camera feed, joint positions and maybe some sensor readings. How does it know what its task is?</p>
+<p><strong>Imitation learning</strong></p>
+<p>A lot of prior work on policies is based on imitation learning (I&rsquo;ve seen it referred to as action cloning as well). Meaning the robot can only perform one or a limited number of tasks. Think of <a href="https://deepmind.google/discover/blog/alphago-zero-starting-from-scratch/">AlphaGo</a> - it&rsquo;s brilliant at playing Go, but you can&rsquo;t ask it questions or have it randomly pick up and play Yu-Gi-Oh.</p>
+<p>In practice, imitation learning is me teleoperating a robot arm tossing clutter off my desk into a bin and recording each episode (video and joint positions). With enough episodes I could train a policy that would eventually clean the desk for me. Of course this comes with a plethora of challenges - grasping is hard because objects have different textures and weights, it&rsquo;s difficult to generalize to new items, if I buy a new lamp the policy might freak out because now we&rsquo;re out of distribution, etc.</p>
+<p>I gave a toy example, but imitation learning is definitely already being deployed out there (<a href="https://www.amazon.science/latest-news/the-quest-to-deploy-autonomous-robots-within-amazon-fulfillment-centers">e.g. Amazon warehouses</a>). I also came across this fun example from <a href="https://www.genengnews.com/topics/bioprocessing/ai-imitation-learning-automates-the-automation/">Stanford Lab for Cell and Gene Medicine</a> where they use imitation learning to mimic the way scientists shake flasks in a particular way. Getting it right just for 1 repetitive task can be deceitfully challenging!</p>
+<p><strong>Generalist policies</strong></p>
+<p>The holy grail of robotics is a generalist model that can perform a variety of different challenging tasks, but also adapt to new ones. In part, this is why <a href="https://humanoidroboticstechnology.com/articles/top-12-humanoid-robots-of-2025/">humanoids are so popular right now</a> - our world is built for the human form factor - a generalist policy running on this embodiment would be a gamechanger in various industries. Suddenly entire factories, warehouses, construction sites or even kitchens and households can be operated by autonomous robots.</p>
+<p>I&rsquo;ll leave the rant about possible dystopia/utopia scenarios for a later time - for now let&rsquo;s agree there&rsquo;s a big demand for the generalist and a lot of the research is building up to towards this end boss of AI.</p>
+<p>LLMs today are as close to that as we&rsquo;ve ever gotten. And if they&rsquo;re not generalists right now, they sure are good at faking it. Slowly all the LLM-related innovations are making their way into embodied AI. And Vision Language Models (VLMs) are their first contact with physical world.</p>
+<h3 id="vlm---first-foray-into-the-physical-world">VLM - first foray into the physical world<a hidden class="anchor" aria-hidden="true" href="#vlm---first-foray-into-the-physical-world">#</a></h3>
+<p>Vision Language Models (VLMs) are multimodal LLMs that have been trained on both image &amp; text data. While they don&rsquo;t &ldquo;speak&rdquo; actions yet, they understand scenes in images. You can feed it pictures and it will be able to describe what&rsquo;s in the image: what kind and how many items, or even predict how some actions might affect the scene (e.g. if the glass spilt the table would become wet). VLMs can be repurposed for a variety of downstream tasks, including robotics.</p>
+<p>The visual processing is usually done via a vision encoder that will convert an input image into tokens of the same dimensionality as the base transformer model  (LLM) alongside the text tokens.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/vlm_overview.png#center"></p>
+<p style="text-align: center"><em>High level Vision Language Model (VLM) representation.</em></p>
+<p>Present day VLMs have become the backbone of training VLAs because the prebaked image understanding is very useful. However there&rsquo;s been recent studies (<a href="https://arxiv.org/abs/2501.16411">Chow et al., 2025</a>) showing that their physical world understanding is still to be desired; 3D perception and world modeling are still big problems to solve, especially in the context of robotics. However it&rsquo;s our first foray into the physical world using LLMs.</p>
+<h3 id="vla---promising-generalists">VLA - promising generalists<a hidden class="anchor" aria-hidden="true" href="#vla---promising-generalists">#</a></h3>
+<p>The exciting thing about VLAs is that most of them are trained to be generalists - meaning they can understand language instructions and perform multiple tasks or even long horizon tasks that need to be broken down into subgoals. In recent research they even generalize to unseen tasks in the training dataset.</p>
+<p>VLAs add an additional modality to VLMs - they output the magic numbers we write to the motor controller APIs in the correct sequence to gracefully fold our button-up shirts.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/vla_overview.png#center"></p>
+<p style="text-align: center"><em>High level Vision Language Action model (VLA) representation.</em></p>
+<p>Most common design pattern (but not the only one!) we&rsquo;re seeing is a finetuned VLM with an additional neural network attached which specializes in the action tokens e.g. recent policies like GR00T-N1 (<a href="https://arxiv.org/abs/2503.14734">Bjork et al., 2025</a>) and SmolVLA <a href="https://arxiv.org/abs/2506.01844">(Shukor et al., 2025)</a> use this structure. The next section will go into much more detail of what these action tokens look like.</p>
+<h2 id="evolution-of-action-learning">Evolution of action learning<a hidden class="anchor" aria-hidden="true" href="#evolution-of-action-learning">#</a></h2>
+<p>Here&rsquo;s a timeline of some of the more popular works in the past 2 years that I think are representative of the VLA evolution:</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/token_timeline.png#center"></p>
+<p style="text-align: center"><em>Recent VLA development timeline. We see a clear transition from action binning to diffusion-type policies.</em></p>
+<p>There&rsquo;s definitely more models that I haven&rsquo;t included or am not even aware, but the purpose here is to understand the trends in action learning - to that end I think these have been some of the more impactful in the field.</p>
+<p>We&rsquo;ve seen a clear shift from action binning / autoregressive prediction towards action chunk inference with iterative denoising like diffusion. We also started seeing new tokenizers specifically for the robotics domain.</p>
+<p>I&rsquo;ll cover 5 examples as we walk through the timeline:</p>
+<ol>
+<li>RT-1: multimodal transformer policies emerged.</li>
+<li>PaLM-E: we started seeing generalist behavior from large VLMs creating plans in the physical world.</li>
+<li>RT-2: the first VLA - instead of using a separate policies for planning &amp; control, now we train the LLM directly on discretized action tokens.</li>
+<li>Octo/Pi0: turns out diffusion-based policies work really well for generating chunks of actions, enabling operation at higher frequencies and performing more dexterous tasks.</li>
+<li>Pi0-FAST: we are starting to see domain-specific tokenization.</li>
+</ol>
+<p>Funnily enough Google is responsible for the first 3 - always early to the party. Now let&rsquo;s walk through each one to build intuition.</p>
+<h3 id="rt-1-robotics-transformer">RT-1: robotics transformer<a hidden class="anchor" aria-hidden="true" href="#rt-1-robotics-transformer">#</a></h3>
+<p>RT-1 (Robot Transformer) (<a href="https://arxiv.org/abs/2212.06817">Brohan et al., 2022</a>) is an incredibly tiny model at 35M parameters and it operates at 3Hz, which by today&rsquo;s standards is pretty slow. This network was trained from scratch (barring some CNN imagenet pretraining) on an internal dataset of 130k demonstrations collected at Google. There was no web-scale image/text pretraining, only robot demonstrations fitting the tiny model.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/rt1.png"></p>
+<p style="text-align: center"><em>Overview of the RT-1 architecture focusing on the action tokenization scoped down to the arm control. The transformer outputs a sequence of 7 tokens which need to be de-tokenized into actions.</em></p>
+<p>The architecture is composed of a CNN conditioned on text tokens, a token learner that downsamples the vision-language tokens for efficiency and a decoder-only transformer. The decoder outputs action tokens that get mapped to an end-effector control sequence for the arm and a base platform.</p>
+<p><strong>Action space</strong></p>
+<p>RT-1 utilizes action binning, where each dimension is discretized into 256 bins and the reverse is performed to get the floating point values for the controller. In the original paper the control includes a base platform as well as an arm:</p>
+<ul>
+<li>Seven for arm (x, y, z, roll, pitch, yaw, opening of the gripper)</li>
+<li>Three for base (x, y, yaw)</li>
+<li>1 discrete variable for terminating ep (signals when the job is done and robot should stop moving)</li>
+</ul>
+<p>To keep things simple we&rsquo;ll ignore the platform and terminating ep, and focus solely on the arm. Note that RT-1 uses end-effector control, meaning the policy needs to output relative displacements in the cartesian coordinate space and a rotation vector of the gripper.</p>
+<p><strong>Action binning</strong></p>
+<p>So how does the binning process work? We need to convert floating point values of displacements and rotations into tokens with vocab size of 256. We can see the exact flow by looking at the <a href="https://github.com/google-research/robotics_transformer/blob/master/tokenizers/action_tokenizer.py">tokenizer code</a> from the open-sourced repo:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">    <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">minimum</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">maximum</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Normalize the action [batch, actions_size]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">token</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">spec</span><span class="o">.</span><span class="n">minimum</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">maximum</span> <span class="o">-</span> <span class="n">spec</span><span class="o">.</span><span class="n">minimum</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Bucket and discretize the action to vocab_size, [batch, actions_size]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">token</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">token</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vocab_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+</span></span></code></pre></div><p>Let&rsquo;s walk through a numerical example. Start with one value from the world vector (or normalized cartesian space displacement) $\Delta{x}$.</p>
+<pre tabindex="0"><code>Tokenization 0.9 (relative displacement) -&gt; 242 (token)
+1. Normalize to [0,1]: (0.9 - (-1.0)) / (1.0 - (-1.0)) = 0.95
+2. Scale to vocab: 0.65 * 255 = 242.25
+3. Discretize: int(242.25) = 242
+
+Detokenization: 242 -&gt; 0.9
+1. Rescale to [0,1]: 242 / 255 = 0.949
+2. Reconstruct: (0.949 * 2.0) + (-1.0) = 0.898
+</code></pre><p>We got the action bounds [-1,1] from the <a href="https://github.com/google-research/robotics_transformer/blob/master/sequence_agent_test_set_up.py#L77-L85">test code</a> of the robotics_transformer repo. Similarly, for the rotation delta we&rsquo;d use the exact same steps, but the bounds would be [$-\pi/2$, $\pi/2$].</p>
+<p>Note that in reconstruction we lose a bit of precision due to the implicit quantization that happens - 256 bins (or 8 bits of precision) provides way less resolution than modern servos are capable of. This can have a compounding effect given more DoF and, as you can imagine, might not work very well for precise granular tasks like threading a needle or picking up something small like a screw.</p>
+<p>This model was also weak in reasoning - trained only on Google&rsquo;s internal robotics dataset it didn&rsquo;t have an understanding of the wider world. RT-1 was limited to simple tasks, and couldn&rsquo;t execute long action horizon planning.</p>
+<h3 id="palm-e-planning">PaLM-E: planning<a hidden class="anchor" aria-hidden="true" href="#palm-e-planning">#</a></h3>
+<p>To bridge the gap between LLMs and physical embodiments the folks at Google developed PaLM-E (Pathways Language Model - Embodied) (<a href="https://arxiv.org/abs/2303.03378">Driess et al., 2023</a>), a massive 562B param Vision-Language model that was trained on both web-scale data but also grounded with sensor inputs and robotics-specific inputs. This work is based on their original PaLM 540B model (<a href="https://arxiv.org/abs/2204.02311">Chowdhery et al., 2022</a>). PaLM-E is a combination of the 540B PaLM and 22B ViT for image encoding.</p>
+<p>PaLM-E doesn&rsquo;t directly output action tokens. However, it is capable of chain-of-thought planning and reasoning about images. Since it can&rsquo;t control a robot directly PaLM-E needs to be supplemented by an additional smaller policy that would translate low-level english instructions to motor commands.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/text_instructions.png"></p>
+<p style="text-align: center"><em>Overview of PaLM-E setup as the planner policy with RT-1 executing low-level instructions. PaLM-E breaks the task down into sub-commands, sends them to RT-1 and once RT-1 is finished it gets fed the next command.</em></p>
+<p>From the PaLM-E paper it wasn&rsquo;t entirely clear to me how the smaller policy works, but in Section 6.4 they mention RT-1 - so we can assume they&rsquo;re RT-1 derived controllers with similar action binning.</p>
+<p>At the time there were other related papers like SayCan (<a href="https://arxiv.org/abs/2204.01691">Ahn et al., 2022</a>) that also utilized PaLM and had it select low level skills which would get passed to a smaller policy.</p>
+<p>We are starting to see a trend towards more generalist policies that actually understand the environment and can execute longer horizon tasks. The models used were huge though, and the inference time is incredibly slow (1-5Hz). Note that Google has been running all of these models on a TPU cloud next to the robot, so nothing is embedded yet either (can you imagine a 562B param policy on an embedded device?).</p>
+<h3 id="rt-2-the-first-vla">RT-2: the first VLA<a hidden class="anchor" aria-hidden="true" href="#rt-2-the-first-vla">#</a></h3>
+<p>I believe Google coined the term VLA when presenting RT-2 (<a href="https://arxiv.org/abs/2307.15818">Brohan et al., 2023</a>). It is widely regarded as the first VLA since this was the first time we saw the transfer learning of webscale data from a pre-trained VLM take place to a robotics policy.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/rt2_overview.png#center"></p>
+<p style="text-align: center"><em>High level overview of RT-2. It's a large finetuned VLM trained to output actions directly.</em></p>
+<p>The RT-2 model has 2 variants: RT-2-PaLI-X and RT-2-PaLM-E. PaLM-E we&rsquo;re already familiar with, PaLI-X (<a href="https://arxiv.org/abs/2305.18565">Chen et al., 2023</a>) is a similar large VLM from Google Research. Mostly cited RT-2 models are the PaLI-X variants at 55B params and a smaller one at 5B. The small model could run at ~5Hz, whereas the bigger one was reported to run at ~1-3Hz. At least in terms of speed, not much improvement over RT-1.</p>
+<p><strong>Action space</strong></p>
+<p>RT-2 uses the same action binning as RT-1, however it&rsquo;s a bit more interesting at the transformer level because actions are now predicted by a finetuned VLM. This means that the vocabulary is shared, but you can&rsquo;t expand the vocabulary size without changing the topology of the model architecture. The approach with RT-2 was, depending on the base VLM, to re-use existing tokens for actions.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/rt2_vocab.png#center"></p>
+<p style="text-align: center"><em>Left: the first 256 tokens of the PaLI-X vocabulary are re-used as action tokens. Right: the least used 256 tokens by PaLM-E are re-purposed as action tokens.</em></p>
+<p>PaLI-X and PaLM-E had slightly different vocabularies. PaLI-X conveniently already has its first 1000 tokens dedicated to representing integers, so they reused the first 256 integers for action tokens - easy! PaLM-E didn&rsquo;t have such convenient mapping, so they overwrote the 256 least used tokens - apparently this is a form of symbol tuning. OpenVLA (<a href="https://arxiv.org/abs/2406.09246">Kim et al., 2024</a>) also used the same tuning method as RT-2-PaLM-E with action binning <strong>and</strong> they <a href="https://github.com/openvla/openvla">open-sourced their work</a> if you want to dive a bit deeper.</p>
+<p>Another cool implementation detail about RT-2 is that during inference they <strong>constrained the output to action token sampling only</strong>. This prevents the model from accidentally outputting &ldquo;cow&rdquo; when it should&rsquo;ve moved the shoulder joint 8 degrees to the right.</p>
+<p>We finally have a policy that is end-to-end trainable and can reason based on web-scale data pretraining. It can execute long horizon tasks. What are we still missing? Well&hellip;</p>
+<ul>
+<li>It&rsquo;s still slow - runs at 5Hz at best.</li>
+<li>We&rsquo;re losing precision due to action binning.</li>
+<li>Inference happens autoregressively and only 1 action vector is being output per observation.</li>
+</ul>
+<p>People started turning to other topologies - like diffusion!</p>
+<h3 id="diffusion-based-vlas-continuous-output-action-space">Diffusion-based VLAs: continuous output action space<a hidden class="anchor" aria-hidden="true" href="#diffusion-based-vlas-continuous-output-action-space">#</a></h3>
+<p>The foundational diffusion policy paper (<a href="https://arxiv.org/abs/2303.04137">Chi et al., 2023</a>) demonstrated that the denoising diffusion process worked surprisingly well for robot control. The policy dealt nicely with multimodality by committing to a single trajectory without jitter. Instead of outputting actions one-by-one in an autoregressive manner it would output sequences of actions in one inference attempt. Another term for this is action chunking coined in the Action Chunking Transformer paper (<a href="https://arxiv.org/abs/2304.13705">Zhao et al., 2023</a>). These policies were mostly used for imitation learning - they weren&rsquo;t generalist conditioned on text instructions yet, but they laid some really important groundwork for how VLAs operate today.</p>
+<p>Octo (<a href="https://arxiv.org/abs/2405.12213">Ghosh et al., 2024</a>) introduced diffusion as the robot transformer combined with a text and vision encoders, making it one of if not the first VLA with diffusion used for action token prediction. Since then diffusion has become SoTA for robot action inference: Pi0 (<a href="https://arxiv.org/abs/2410.24164">Black et al., 2024</a>), GR00T-N1 (<a href="https://arxiv.org/abs/2503.14734">Bjork et al., 2025</a>), SmolVLA <a href="https://arxiv.org/abs/2506.01844">(Shukor et al., 2025)</a> and many others use diffusion transformers as their action experts.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/diffusion_vla.png#center"></p>
+<p style="text-align: center"><em>VLA composed of a VLM and diffusion transformer (DiT) as the action expert, typically connected via cross-attention. Single inference outputs H action vectors (action horizon).</em></p>
+<p>Modern policies still use VLMs that are web-scale data pretrained. Similarly to Mixture of Experts (MoE) models, this VLA topology uses the VLM as the text-image expert and only routes those types of tokens through the transformer. Whereas the DiT is the action expert that deals with tokens related to actions i.e. proprioception.</p>
+<p>Recall that previous policies we&rsquo;ve seen could muster at most 5Hz. Physical Intelligence showed that their model Pi0 could perform tasks at up to 50Hz (<a href="https://arxiv.org/abs/2410.24164">Black et al., 2024</a>) - that&rsquo;s 10x from RT-2 days! Remember - speed here is not how many inferences we can do in a second, but how many actions per second get run.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/diffusion_output.png#center"></p>
+<p style="text-align: center"><em>DiT action experts output entire trajectories in a single inference.</em></p>
+<p>The diffusion process might need 10 denoising iterations, but this will still be a relatively low number regardless if your action horizon is 50 or 200. Comparatively auto-regressive policies will need that many transformer steps per action dimension. We also don&rsquo;t need to discretize our actions anymore (action binning of RT-1/RT-2) because the diffusion process produces smooth continuous action values.</p>
+<p>Even super recent works like from <a href="https://bostondynamics.com/blog/large-behavior-models-atlas-find-new-footing">Boston Dynamics</a> are still using diffusion for action prediction. So I don&rsquo;t think it&rsquo;s going away any time soon.</p>
+<p>Of course robotics hasn&rsquo;t been solved yet - so what are we still missing? Well there&rsquo;s still a couple outstanding issues with SoTA VLAs, that are being worked on as we speak:</p>
+<ul>
+<li>During training VLMs tend to forget a level of world knowledge and the models lose generalizability. RT-2 was co-trained with action and original web data with action tokens in the same vocabulary as text-image tokens. This approach would be ideal to preserve generalizability, but few companies have the data and compute to replicate what Google does.</li>
+<li>Long horizon predictions (100+ actions) don&rsquo;t guarantee most up-to-date observation data per action. E.g. once you reach the 50th action token the environment may have drastically changed because you&rsquo;re running on assumptions made half a second ago.</li>
+</ul>
+<p>The last action learning methodology doesn&rsquo;t exactly address these issues but personally I find it really cool so I wanted to cover it as well - in-domain tokenization.</p>
+<h3 id="pi0-fast-first-domain-specific-tokenizer">Pi0-FAST: first domain-specific tokenizer<a hidden class="anchor" aria-hidden="true" href="#pi0-fast-first-domain-specific-tokenizer">#</a></h3>
+<p>The Frequency-space Action Sequence Tokenization (FAST) tokenizer (<a href="https://arxiv.org/abs/2501.09747">Pertsch et al., 2025</a>) from Physical Intelligence was the first time I&rsquo;ve seen in-domain tokenization for robotics. To me this makes so much sense, especially following what&rsquo;s being going on in the LLM space. We never do character or word-level prediction anymore, today&rsquo;s tokens are these information-dense representations that already come packed with information to make it easier for the transformer to make predictions. That&rsquo;s basically what FAST is doing.</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/fast_overview.png#center"></p>
+<p style="text-align: center"><em>In a nutshell FAST compresses trajectories into discrete tokens. And because they're compressed the transformer model needs fewer inference steps.</em></p>
+<p>There&rsquo;s definitely redundancy in robotics trajectories - for example how much does the shoulder move if you&rsquo;re only doing vertical arm movement with the elbow? It doesn&rsquo;t. We could just compress all those 0&rsquo;s into a single token.</p>
+<p>This sparsity is exploited when you convert the time-series trajectories into the frequency domain. Typically recorded trajectories contain mostly low-frequency components, with high frequencies contributing very little to the signal, which means we can throw them away while preserving the majority of the action information. The original paper figure illustrates this nicely:</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/fast.png#center"></p>
+<p style="text-align: center"><em>Detailed overview of the FAST algorithm.</em></p>
+<p>Props to Physical Intelligence for <a href="https://huggingface.co/physical-intelligence/fast">open sourcing the tokenizer</a>, so we can easily play around with it. Here I create some synthetic trajectories and see how good of a job it did at reconstructing the actions.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoProcessor</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Load tokenizer and generate sinusoidal trajectories</span>
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;physical-intelligence/fast&#34;</span><span class="p">,</span> <span class="n">trust_remote_code</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">trajectory</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">   <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">   <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">   <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">   <span class="n">trajectory</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">a1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">f1</span><span class="o">*</span><span class="n">t</span> <span class="o">+</span> <span class="n">p1</span><span class="p">)</span> <span class="o">+</span> <span class="n">a2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">f2</span><span class="o">*</span><span class="n">t</span> <span class="o">+</span> <span class="n">p2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">action_data</span> <span class="o">=</span> <span class="n">trajectory</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># Add batch dimension</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Tokenize and decode</span>
+</span></span><span class="line"><span class="cl"><span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">action_data</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">decoded_actions</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Actions: </span><span class="si">{</span><span class="n">action_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Tokens: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span><span class="si">}</span><span class="s2">, Decoded: </span><span class="si">{</span><span class="n">decoded_actions</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Output:</span>
+</span></span><span class="line"><span class="cl"><span class="n">Actions</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">Tokens</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span> <span class="n">Decoded</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span></span></code></pre></div><p>Look at that! So our sequence of 50 actions (total 150 elements) got compressed to only 19 tokens, that&rsquo;s 38% of the original sequence length. But recall that DCT isn&rsquo;t lossless compression, so let&rsquo;s take a look at the reconstructed trajectories:</p>
+<p><img loading="lazy" src="/posts/robot_actions_overview/fast_trajectories.png#center"></p>
+<p style="text-align: center"><em>Plotting original actions vs reconstructed actions from FAST tokens. The reconstructed trajectories are a very close match to the original.</em></p>
+<p>Training gets significantly simpler because the action sequence lengths become shorter. According to the paper the autoregressive pi0 model converges 5x faster with FAST. <strong>However</strong>, this is only in training. Even with FAST the autoregressive policy is still slower when computing 1 second worth of actions taking 750ms per inference compared to diffusion which takes 100ms to produce the same output.</p>
+<h2 id="whats-next">What&rsquo;s next?<a hidden class="anchor" aria-hidden="true" href="#whats-next">#</a></h2>
+<p>In terms of action representation strategy I think these flow matching, diffusion-style heads will stay with us for a while. Though I can&rsquo;t believe I haven&rsquo;t seen more work on tokenization. There&rsquo;s a lot of scope for compressing actions efficiently, lots of signal processing techniques waiting to be re-discovered. That said, there are plenty of other pressing issues to solve.</p>
+<p>Right now we still don&rsquo;t have true generalists walking around in our houses learning tasks on the go. We still need that AGI. One problem with training VLAs today is that the backprop gradients from the action expert overwrite VLM weights - making the model dumber. There&rsquo;s been a lot of pretty cool developments to overcome some of these issues. E.g. Physical Intelligence (<a href="https://arxiv.org/abs/2505.23705">Driess et al., 2025</a>) introduced the concept of Knowledge Insulation (KI) to preserve the VLMs integrity.</p>
+<p>Latency and speed are also big issues. Predicting action chunks introduces big pauses between inference and action, and like I mentioned before you can&rsquo;t operate on too long of an action horizon because you&rsquo;re acting on outdated observation info. Recently Physical Intelligence released a paper on real-time action chunking, where they execute the actions and asynchronously start predicting the next chunk (<a href="https://arxiv.org/abs/2506.07339">Black et al., 2025</a>). HuggingFace implemented a similar asynchronous runtime for SmolVLA and reported <a href="https://huggingface.co/blog/smolvla">2x the throughput</a> with this approach.</p>
+<p>Accuracy and generalizability will come as models improve - currently robotics policies are following VLMs and these things are only getting smarter. What&rsquo;s even more exciting is that the small open-source models are becoming more capable! Smaller models - more accessible to community - I&rsquo;m a big fan of the new <a href="https://developers.googleblog.com/en/gemma-3-quantized-aware-trained-state-of-the-art-ai-to-consumer-gpus/">Gemma models that got released with official quantized checkpoints</a>, I hope this becomes more of a trend and we&rsquo;ll start seeing VLAs built on top of these soon enough.</p>
+<h2 id="closing">Closing<a hidden class="anchor" aria-hidden="true" href="#closing">#</a></h2>
+<p>Hopefully this writeup clarified what the &ldquo;A&rdquo; in VLA is. It&rsquo;s really impressive how much was achieved in just a couple years.</p>
+<p>I don&rsquo;t know how close we really are to true generalists - honestly, it might not happen until AGI arrives. But if you want to get in on the action then right now is the best time to dive into robotics.</p>
+<p>Even without hardware you can make significant contributions just on the software side: finetune Pi0 in sim or play around with signal processing techniques to come up with more efficient tokenizers!</p>
+<p>TTFN</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/robotics/">Robotics</a></li>
+      <li><a href="http://localhost:1313/tags/vla/">Vla</a></li>
+    </ul>
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on x"
+            href="https://x.com/intent/tweet/?text=What%20puts%20the%20A%20in%20VLA%3f&amp;url=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f&amp;hashtags=robotics%2cvla">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f&amp;title=What%20puts%20the%20A%20in%20VLA%3f&amp;summary=What%20puts%20the%20A%20in%20VLA%3f&amp;source=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f&title=What%20puts%20the%20A%20in%20VLA%3f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on whatsapp"
+            href="https://api.whatsapp.com/send?text=What%20puts%20the%20A%20in%20VLA%3f%20-%20http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-58.673,127.703c-33.842,-33.881 -78.847,-52.548 -126.798,-52.568c-98.799,0 -179.21,80.405 -179.249,179.234c-0.013,31.593 8.241,62.428 23.927,89.612l-25.429,92.884l95.021,-24.925c26.181,14.28 55.659,21.807 85.658,21.816l0.074,0c98.789,0 179.206,-80.413 179.247,-179.243c0.018,-47.895 -18.61,-92.93 -52.451,-126.81Zm-126.797,275.782l-0.06,0c-26.734,-0.01 -52.954,-7.193 -75.828,-20.767l-5.441,-3.229l-56.386,14.792l15.05,-54.977l-3.542,-5.637c-14.913,-23.72 -22.791,-51.136 -22.779,-79.287c0.033,-82.142 66.867,-148.971 149.046,-148.971c39.793,0.014 77.199,15.531 105.329,43.692c28.128,28.16 43.609,65.592 43.594,105.4c-0.034,82.149 -66.866,148.983 -148.983,148.984Zm81.721,-111.581c-4.479,-2.242 -26.499,-13.075 -30.604,-14.571c-4.105,-1.495 -7.091,-2.241 -10.077,2.241c-2.986,4.483 -11.569,14.572 -14.182,17.562c-2.612,2.988 -5.225,3.364 -9.703,1.12c-4.479,-2.241 -18.91,-6.97 -36.017,-22.23c-13.314,-11.876 -22.304,-26.542 -24.916,-31.026c-2.612,-4.484 -0.279,-6.908 1.963,-9.14c2.016,-2.007 4.48,-5.232 6.719,-7.847c2.24,-2.615 2.986,-4.484 4.479,-7.472c1.493,-2.99 0.747,-5.604 -0.374,-7.846c-1.119,-2.241 -10.077,-24.288 -13.809,-33.256c-3.635,-8.733 -7.327,-7.55 -10.077,-7.688c-2.609,-0.13 -5.598,-0.158 -8.583,-0.158c-2.986,0 -7.839,1.121 -11.944,5.604c-4.105,4.484 -15.675,15.32 -15.675,37.364c0,22.046 16.048,43.342 18.287,46.332c2.24,2.99 31.582,48.227 76.511,67.627c10.685,4.615 19.028,7.371 25.533,9.434c10.728,3.41 20.492,2.929 28.209,1.775c8.605,-1.285 26.499,-10.833 30.231,-21.295c3.732,-10.464 3.732,-19.431 2.612,-21.298c-1.119,-1.869 -4.105,-2.99 -8.583,-5.232Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on telegram"
+            href="https://telegram.me/share/url?text=What%20puts%20the%20A%20in%20VLA%3f&amp;url=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share What puts the A in VLA? on ycombinator"
+            href="https://news.ycombinator.com/submitlink?t=What%20puts%20the%20A%20in%20VLA%3f&u=http%3a%2f%2flocalhost%3a1313%2fposts%2frobot_actions_overview%2f">
+            <svg version="1.1" xml:space="preserve" width="30px" height="30px" viewBox="0 0 512 512" fill="currentColor"
+                xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+                <path
+                    d="M449.446 0C483.971 0 512 28.03 512 62.554L512 449.446C512 483.97 483.97 512 449.446 512L62.554 512C28.03 512 0 483.97 0 449.446L0 62.554C0 28.03 28.029 0 62.554 0L449.446 0ZM183.8767 87.9921H121.8427L230.6673 292.4508V424.0079H281.3328V292.4508L390.1575 87.9921H328.1233L256 238.2489z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2025 <a href="http://localhost:1313/">Baltic Vectors</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
