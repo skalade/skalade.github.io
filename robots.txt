@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://skalade.github.io/sitemap.xml
